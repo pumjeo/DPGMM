@@ -1,62 +1,82 @@
 # DPGMM
-
-This repository is the source code of the paper "**Unsupervised Outlier Detection using Random Subspace and Subsampling Ensembles of Dirichlet Process Mixtures**" published in Pattern Recognition (July 2024). (see the full paper at https://arxiv.org/abs/2401.00773 or https://doi.org/10.1016/j.patcog.2024.110846) 
+This repository is the source code of the **DPGMM**(Dirichlet Process Gaussian Mixture Model) for the clustering and variable selection of the functional linear regression data.
 
 # How to use?
-OEDPM offers user-friendly APIs similar to those in sklearn. Initially, we create an instance of the model class using specified parameters. Once instantiated, this model can then be employed for fitting and predicting data.
+DPGMM offers user-friendly APIs similar to those in sklearn. Initially, we create an instance of the model class using specified parameters. Once instantiated, this model can then be employed for fitting and predicting data.
 
 ```python
-from oedpm import OEDPM
-model_configs = {'n_components':100, 'useIQRMethod':False, 'contamination':'auto'}
-model = OEDPM(**model_configs)
-model.fit(X_train)
-y_pred = model.predict(X_train)  # Predicted value for training data
-y_scores = model.y_scores  # Outlier scores for training data
+from _DPGMM_basic import DPGMM_basic
+
+model_configs = {'n_componetns':30, 'tol':1e-3, 'reg_covar':1e-6, 'max_iter':10000,
+                  'random_state':42, 'verbose'=2, 'verbose_interval':10}
+model = DPGMM_basic(**model_configs)
+model.fit(X, y, counts)
+
+model.weights_ # Weights of each cluster
+model.beta_mean_ # Posterior mean of beta
+np.sqrt(model.precision_rate_/model.precision_shape_) # Posterior mean of standard deviation
+y_pred = model.predict(X, y, counts) # Predicted value for training data
 ```
 
 # Parameters
-- `n_components`: Number of parallel estimators in the ensemble. Default is 100.  
-- `cov_type`: Covariance restriction of the Gaussian mixture. Default is 'diag'.  
-- `useIQRMethod`: Indicates whether to use the IQR method or contamination methods for outlier detection. Default is True.  
-  - If True, use the `whis` parameter.
-  - If False, use the `contamination` parameter.
-- `whis`: Whisker length in the IQR method. Default is 1.5.
-  - This is used only when `useIQRMethod` is True.
-- `contamination`: The proportion of outliers in the dataset, used to set the threshold for outlier detection when not using the IQR method. Default is 'auto'.
-  - This is used only when `useIQRMethod` is False.
-- `supervised`: Boolean indicating whether the training dataset consists only of normal classes. If true, inlier cluster selection is not necessary. Default is False.
+- `n_components`: The number of mixture components. Default is 1.0
+- `tol`: The convergence threshold. Default is 1e-3
+- `reg_covar`: Non-negative regularization added to the diagonal of covariance. Default is 1e-6
+- `max_iter`: The number of VI iterations to perform. Default is 200
+- `Weight_concentration_prior`: The Dirichlet concentration of each component. Default is 1.0
+- `beta_rho_prior`: The variance prior on the beta parameters that are not penalized. Default is 10**2
+- `beta_prior`: The prior on the coefficients distribution (Gaussian). Always set to zero vector.
+- `precision_shape_prior`: The prior of the shape parameter on the precision distribution. Default is 0.001
+- `precision_rate_prior`: The prior of the rate parameter on the precision distribution. Default is 0.001      
+- `shrink_shape_prior`: The prior of the shape parameter on the shrink distribution. Default is 0.001
+- `shrink_rate_prior`: The prior of the rate parameter on the shrink distribution. Default is 0.001
+- `random_state`: Controls the random seed given to the method chosen to initialize the parameters.  
+- `verbose`: Enable verbose output. Default is 0
+- `verbose_interval`: Number of iterations done before the next print. Default is 10
 
 # Methods
-- `fit(X)`: Fit estimator.
-- `predict(X)`: Predict whether a particular sample is an outlier.
-- `random_proj(X)`: Random projection and subsampling.
-- `fit_DPGMM(X)`: Fit DPGMM using variational inference
-- `get_cluster_assignments(model, X)`: Allocate data points by cluster based on fitted DPGMM.
-- `get_inlier_clusters(model, num_assignments, supervised)`: Select inlier cluster based on cluster weights.
-- `get_log_likelihood(X, mixture_weights, mixture_mus, mixture_covs)`: Calculate the log likelihood of all data points. Instead of replacing everything with infinity, use log-sum-exp tricks to eliminate underflow. 
-- `get_outlier_threshold_contamination(x)`: Calculates the outlier threshold based on the contamination level. It sorts the data in 'x' and finds the value at the percentile corresponding to `contamination`. This value is then returned as the threshold for identifying outliers.
-- `get_outlier_threshold_IQR(x)`: Calculates the outlier threshold using the IQR method. The lower bound is computed as Q1 minus `whis` times the IQR. The threshold is set at the smallest value in 'x' that is less than this lower bound.
+- `fit(X, y, counts)`: Fit estimator.
+- `predict(X, y, counts)`: Predict the labels of each subgroup for the data samples using the trained model
 
-# Returns
-- `y_pred`: For each observation, it tells whether or not (1 or 0) it should be considered as an outlier according to the fitted model.
-- `y_scores`: Outlier score of X of the base classifiers. The outlier score of an input sample is computed as the mean of binarized likelihood values from each ensemble component.
+# Attributes
+- `weights_`: The weights of each mixture component.
+- `beta_mean_`: The transformed coefficients of each mixture component.
+- `beta_star_mean_`: The updated coefficients of each mixture component.
+- `beta_covariance_`: The updated covariance of each mixture component.
+- `precision_shape_`: The updated shape parameter for each precision component in the mixture.
+- `precision_rate_`: The updated rate parameter for each precision component in the mixture. 
+- `converged_`: True when convergence was reached in fit(), False otherwise.
+- `n_iter_`: Number of step used by the best fit of inference to reach the convergence.
+- `weight_concentration_`: The Dirichlet concentration of each component.
 
 # Examples
 ```python
-from oedpm import OEDPM
-from data_generator import benchmark_generator
-from common import calculate_metrics
+import numpy as np
+from _DPGMM_basic import DPGMM_basic
+from _example_generator import data_generator, graph_generator
 
 # Generate data
-X, y = benchmark_generator('musk')
+x, y, counts, true_label_temp = data_generator(poisson_parameter=10, scale=0.1, number_subgroups=1000, random_seed=101)
+
+# Generate design matrix using basis expansion
+knot = np.linspace(0, 1, num=30, endpoint=False)
+N = x.shape[0]
+D = knot.shape[0]+4
+B = np.zeros((N, D))
+for i in range(N):
+    B[i,:] = np.array([1, x[i], x[i]**2, x[i]**3] + [abs(x[i]-t)**3 for t in knot])
 
 # Fit the model
-model_configs = {'n_components':100, 'useIQRMethod':False, 'contamination':'auto'}
-model = OEDPM(**model_configs)
-model.fit(X)
-y_pred = model.predict(X)  # Predicted value for training data
-y_scores = model.y_scores  # Outlier scores for training data
+model = DPGMM_basic(n_components=30, tol=1e-3, reg_covar = 1e-6, max_iter=10000, 
+            random_state=42, verbose=2, verbose_interval=10).fit(B, y, counts)
 
-# Calculate metrics
-calculate_metrics(y, y_pred, y_scores)
+# Check the results
+model.weights_ # Weights of each cluster
+model.beta_mean_ # Posterior mean of beta
+np.sqrt(model.precision_rate_/model.precision_shape_) # Posterior mean of standard deviation
+predicted_label = model.predict(B, y, counts) # Predicted label
+
+# Draw the estimated graphs
+graph_generator(B, x, counts, predicted_label, knot, model.beta_star_mean_, model.beta_covariance_, 
+                model.precision_shape_, model.precision_rate_, percentage=0.95, graph_threshold = 100, interval=True)
 ```
