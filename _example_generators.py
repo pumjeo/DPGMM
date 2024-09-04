@@ -2,7 +2,7 @@
 
 # Author: Neulpum Jeong <pumjeo@gmail.com>
 # License: BSD 3 clause
-# Time : 2024/08/31
+# Time : 2024/09/04
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,9 +17,7 @@ def signal2(x):
 def signal3(x):
     return np.sqrt(x*(1-x)) * np.sin((2*np.pi*(1+2**(-3/5)))/(x+2**(-3/5))) + 0.1
 
-def data_generator(poisson_parameter, scale, number_subgroups, random_seed):
-    """Make functional linear regression data from three different smooth functions"""
-    
+def data_generator_basic(poisson_parameter=10, scale=0.1, number_subgroups=1000, random_seed=42):
     np.random.seed(random_seed)
     counts = np.random.poisson(poisson_parameter, size=number_subgroups)
 
@@ -35,7 +33,7 @@ def data_generator(poisson_parameter, scale, number_subgroups, random_seed):
         temp_y = signal1(temp_x) + np.random.normal(scale=scale, size=counts[i]) # scale is standard deviation
         x = np.concatenate((x, temp_x), axis=0)
         y = np.concatenate((y, temp_y), axis=0)
-
+        
     for i in range(a, b):
         temp_x = np.random.uniform(0, 1, size=counts[i]) 
         temp_y = signal2(temp_x) + np.random.normal(scale=scale, size=counts[i]) 
@@ -57,38 +55,70 @@ def data_generator(poisson_parameter, scale, number_subgroups, random_seed):
     ax.scatter(x[point1:point2], y[point1:point2], alpha = 0.4, s=2)
     ax.scatter(x[point2:point3], y[point2:point3], alpha = 0.4, s=2)
     plt.show()
-
     print(x.shape)
     
-    true_label_temp = np.concatenate([np.repeat(0,a), np.repeat(1,b-a), np.repeat(2,number_subgroups-b)], axis=0)
+    return x, y, counts
+
+
+def data_generator_mixed_effect(poisson_parameter=10, scale=0.1, number_subgroups=1000, random_seed=42):
+    np.random.seed(random_seed)
+    counts = np.random.poisson(poisson_parameter, size=number_subgroups)
+
+    x = np.array([])
+    y = np.array([])
+    xai = np.empty([0,2])
     
-    return x, y, counts, true_label_temp
+    temp = number_subgroups//3
+    a = temp
+    b = 2*temp
 
+    Q1 = np.array([[20, 0], [0, 20]])
+    Q2 = np.array([[10, -3], [-3, 12]])
+    Q3 = np.array([[15, 3], [3, 6]])
 
-def graph_generator(B, x, counts, predicted_label, knot, mean_star, 
-                    C_beta, a, b, percentage=0.95, graph_threshold = 100, interval=True):
-    """ Draw the estimated graphs that describes the basis expansion from each cluster with 95% credible interval"""
-    K, _ = mean_star.shape
+    for i in range(0, a):
+        temp_x = np.random.uniform(0, 1, size=counts[i])
+        temp_xai = np.random.multivariate_normal([0, 0], np.linalg.inv(Q1))
+        temp_w = np.column_stack((np.ones((counts[i], 1)), temp_x))    
+        temp_y = signal1(temp_x) + np.dot(temp_w, temp_xai) + np.random.normal(scale=scale, size=counts[i]) 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        xai = np.vstack((xai, temp_xai))
+
+    for i in range(a, b):
+        temp_x = np.random.uniform(0, 1, size=counts[i])
+        temp_xai = np.random.multivariate_normal([0, 0], np.linalg.inv(Q2))
+        temp_w = np.column_stack((np.ones((counts[i], 1)), temp_x))    
+        temp_y = signal2(temp_x) + np.dot(temp_w, temp_xai) + np.random.normal(scale=scale, size=counts[i]) 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        xai = np.vstack((xai, temp_xai))
+
+    for i in range(b, number_subgroups):
+        temp_x = np.random.uniform(0, 1, size=counts[i])
+        temp_xai = np.random.multivariate_normal([0, 0], np.linalg.inv(Q3))
+        temp_w = np.column_stack((np.ones((counts[i], 1)), temp_x))    
+        temp_y = signal3(temp_x) + np.dot(temp_w, temp_xai) + np.random.normal(scale=scale, size=counts[i]) 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        xai = np.vstack((xai, temp_xai))
+
+    point1 = np.sum(counts[:a])
+    point2 = point1 + np.sum(counts[a:b])
+    point3 = point2 + np.sum(counts[b:number_subgroups])
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.scatter(x[:point1], y[:point1], alpha = 0.4, s=2)
+    ax.scatter(x[point1:point2], y[point1:point2], alpha = 0.4, s=2)
+    ax.scatter(x[point2:point3], y[point2:point3], alpha = 0.4, s=2)
+    plt.show()
+    print(x.shape)
     
-    # Design Matrix Standardization
-    intercept = B[:, 0]
-    mean_B = np.mean(B[:, 1:], axis=0) 
-    std_dev_B = np.std(B[:, 1:], axis=0)
-    standardized = (B[:, 1:] - mean_B) / std_dev_B
-    B_star = np.column_stack((intercept, standardized))
+    return x, y, xai, counts
 
-    x_split = np.split(x, np.cumsum(counts)[:-1], axis=0)
-    B_star_split = np.split(B_star, np.cumsum(counts)[:-1], axis=0)
+def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=0.95, 
+                    graph_threshold = 100, option='line_without_minor', interval=True):
 
-    BS = [[] for _ in range(K)]
-    x_graph = [[] for _ in range(K)]
-
-    for i in range(counts.shape[0]):
-        k = predicted_label[i]
-        temp = np.dot(B_star_split[i], mean_star[k])
-        BS[k].extend(temp)
-        x_graph[k].extend(x_split[i])
-    
     # True Graph
     x_space = np.linspace(0, 1, num=500, endpoint=False)
     graph_y1 = signal1(x_space)
@@ -99,31 +129,54 @@ def graph_generator(B, x, counts, predicted_label, knot, mean_star,
     ax.plot(x_space, graph_y1, linestyle='--', lw=1, c='black', label='True Graph')
     ax.plot(x_space, graph_y2, linestyle='--', lw=1, c='black')
     ax.plot(x_space, graph_y3, linestyle='--', lw=1, c='black')
+    
+    # Scatter Graph
+    K, _ = mean_star.shape
 
+    intercept = B[:, 0]
+    mean_B = np.mean(B[:, 1:], axis=0) 
+    std_dev_B = np.std(B[:, 1:], axis=0)
+    standardized = (B[:, 1:] - mean_B) / std_dev_B
+    B_star = np.column_stack((intercept, standardized))
+    x = B[:, 1]
+    x_split = np.split(x, np.cumsum(counts)[:-1], axis=0)
+    B_star_split = np.split(B_star, np.cumsum(counts)[:-1], axis=0)
 
+    BS = [[] for _ in range(K)]
+    x_graph = [[] for _ in range(K)]
+
+    for i in range(counts.shape[0]):
+        k = label[i]
+        temp = np.dot(B_star_split[i], mean_star[k])
+        BS[k].extend(temp)
+        x_graph[k].extend(x_split[i])
+
+    x_new = np.random.uniform(0, 1, size=10000)
+    N_new = x_new.shape[0]
+    D_new = knot.shape[0]+4
+    B_new = np.zeros((N_new, D_new))
+
+    for i in range(N_new): 
+        B_new[i,:] = np.array([1, x_new[i], x_new[i]**2, x_new[i]**3] + [abs(x_new[i]-t)**3 for t in knot])
+
+    intercept = B_new[:, 0]
+    standardized = (B_new[:, 1:] - mean_B) / std_dev_B
+    B_new_star = np.column_stack((intercept, standardized))
+        
     # Estimated Graph
-    for k in range(K):
-        if len(BS[k]) == 0 : continue
-        ax.scatter(x_graph[k], BS[k], s=2, label='Estimate Graph of '+str(k+1))
-
+    if option=='scatter_all':
+        for k in range(K):
+                if len(BS[k]) == 0 : continue
+                ax.scatter(x_graph[k], BS[k], s=2, label='Estimate Graph of '+str(k+1))
+    
+    elif option=='line_without_minor':
+        for k in range(K):
+            BS_new = np.dot(B_new_star, mean_star[k])
+            if len(BS[k]) < graph_threshold : continue
+            ax.scatter(x_new, BS_new, s=2, label='Estimate Graph of '+str(k+1))
+        
+    # 95% Credible Interval
     if interval:
-        # 95% Credible Interval
-        x_new = np.random.uniform(0, 1, size=10000)
-        N_new = x_new.shape[0]
-        D_new = knot.shape[0]+4
-        B_new = np.zeros((N_new, D_new))
-
-        for i in range(N_new): 
-            B_new[i,:] = np.array([1, x_new[i], x_new[i]**2, x_new[i]**3] + [abs(x_new[i]-t)**3 for t in knot])
-
-        # Transformation using original B
-        mean_B = np.mean(B[:, 1:], axis=0) 
-        std_dev_B = np.std(B[:, 1:], axis=0)
-
-        intercept = B_new[:, 0]
-        standardized = (B_new[:, 1:] - mean_B) / std_dev_B
-        B_new_star = np.column_stack((intercept, standardized))
-
         for k in range(K):
             if len(BS[k]) < graph_threshold : continue
             mu = np.dot(B_new_star, mean_star[k])
