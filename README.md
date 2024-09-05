@@ -107,3 +107,6 @@ graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, 
                 model.precision_rate_, predicted_label, percentage=0.95, 
                 graph_threshold = 100, option='line_without_minor', interval=True)
 ```
+
+
+
