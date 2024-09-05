@@ -19,8 +19,8 @@ from ._example_generators import (
 """Basic Model"""
 
 # Generate data
-x, y, counts, true_label_temp = data_generator_basic(poisson_parameter=10, scale=0.1, 
-                                                     number_subgroups=1000, random_seed=100)
+x, y, counts  = data_generator_basic(poisson_parameter=10, scale=0.1, 
+                                     number_subgroups=1000, random_seed=100)
 
 # Generate design matrix using basis expansion
 knot = np.linspace(0, 1, num=30, endpoint=False)
