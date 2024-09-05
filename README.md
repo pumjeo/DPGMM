@@ -108,5 +108,5 @@ graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, 
                 graph_threshold = 100, option='line_without_minor', interval=True)
 ```
 
-
+![data](https://github.com/user-attachments/assets/c4888c2e-65df-4215-8e6e-b6d3cb4b6c6b)
 
