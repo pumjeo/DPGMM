@@ -50,8 +50,8 @@ graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, 
 """Mixed Effect Model"""
 
 # Generate data
-x, y, true_xai, counts = data_generator_basic(poisson_parameter=10, scale=0.1, 
-                                              number_subgroups=1000, random_seed=100)
+x, y, true_xai, counts = data_generator_mixed_effect(poisson_parameter=10, scale=0.1, 
+                                                     number_subgroups=1000, random_seed=100)
 
 # Generate design matrix using basis expansion
 knot = np.linspace(0, 1, num=30, endpoint=False)
