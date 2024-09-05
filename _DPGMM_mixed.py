@@ -140,13 +140,13 @@ class DPGMM_mixed(DPGMM_base):
     precision_rate_ : array-like of shape (n_components,)
         The shape parameter for each precision component in the mixture.    
     
-    c_tau : float
+    c_tau_ : float
         The first parameter of the posterior distribution of shrinkage parameter (GIG)
 
-    d_tau : array-like of shape (n_components,)
+    d_tau_ : array-like of shape (n_components,)
         The second parameter of the posterior distribution of shrinkage parameter (GIG)
         
-    f_tau : array-like of shape (n_components, n_features-4)
+    f_tau_ : array-like of shape (n_components, n_features-4)
         The third parameter of the posterior distribution of shrinkage parameter (GIG)
     
     shrink_shape_ : float
@@ -163,11 +163,11 @@ class DPGMM_mixed(DPGMM_base):
         The covariance parameter of the posterior distribution of the
         precision matrix of the random effect (Wishart)
         
-    mu : array-like of shape (n_subgroups, n_features2)
+    mu_ : array-like of shape (n_subgroups, n_features2)
         The mean parameter of the posterior distribution of the
         random effect (Gaussian)
         
-    Sigma : array-like of shape (n_subgroups, n_features2, n_features2)
+    Sigma_ : array-like of shape (n_subgroups, n_features2, n_features2)
         The covariance parameter of the posterior distribution of the
         random effect (Gaussian)   
     
@@ -198,19 +198,19 @@ class DPGMM_mixed(DPGMM_base):
         The value of the parameter must be greater than 0.
         If it is None, it is set to 10**2.
 
-    precision_shape_prior : float
+    precision_shape_prior_ : float
         The prior of the shape parameter on the precision
         distributions (Gamma).
 
-    precision_rate_prior : array-like of shape (n_components,)
+    precision_rate_prior_ : array-like of shape (n_components,)
         The prior of the rate parameter on the precision
         distributions (Gamma).
         
-    shrink_shape_prior :
+    shrink_shape_prior_ :
         The prior of the shape parameter on the shrinkage
         distributions (Gamma).    
         
-    shrink_rate_prior : 
+    shrink_rate_prior_ : 
         The prior of the rate parameter on the shrinkage
         distributions (Gamma).
         
