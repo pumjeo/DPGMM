@@ -2,11 +2,12 @@
 
 # Author: Neulpum Jeong <pumjeo@gmail.com>
 # License: BSD 3 clause
-# Time : 2024/09/04
+# Time : 2024/09/05
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.stats import norm
 
 def signal1(x):
     return x + 2*np.exp(-(16*(x-0.5))**2)-0.5
@@ -18,6 +19,7 @@ def signal3(x):
     return np.sqrt(x*(1-x)) * np.sin((2*np.pi*(1+2**(-3/5)))/(x+2**(-3/5))) + 0.1
 
 def data_generator_basic(poisson_parameter=10, scale=0.1, number_subgroups=1000, random_seed=42):
+    """Generating regression data for the basic model."""
     np.random.seed(random_seed)
     counts = np.random.poisson(poisson_parameter, size=number_subgroups)
 
@@ -61,6 +63,8 @@ def data_generator_basic(poisson_parameter=10, scale=0.1, number_subgroups=1000,
 
 
 def data_generator_mixed_effect(poisson_parameter=10, scale=0.1, number_subgroups=1000, random_seed=42):
+    """Generating regression data for the mixed effect model. The three precision matrix for the
+       Random effect are arbitraily set differently."""
     np.random.seed(random_seed)
     counts = np.random.poisson(poisson_parameter, size=number_subgroups)
 
@@ -116,8 +120,118 @@ def data_generator_mixed_effect(poisson_parameter=10, scale=0.1, number_subgroup
     
     return x, y, xai, counts
 
+def truncated_normal_sample(mu, variance, lower, upper, size=1):
+    """Sampling function for the truncated normal distribution. 
+       mu and variance is the mean and variance parameter of 
+       the original Normal distribution."""
+    sigma = np.sqrt(variance)
+
+    lower_cdf = norm.cdf(lower, mu, sigma)
+    upper_cdf = norm.cdf(upper, mu, sigma)
+
+    v = np.random.uniform(lower_cdf, upper_cdf, size)
+    samples = norm.ppf(v, mu, sigma)
+    
+    return samples
+
+def data_generator_AR1(repetition = 50, scale=0.1, number_subgroups=500, random_seed=42):
+    """Generating regression data for the mixed effect model. The precision value for the
+       auto correlation of the model is arbitraily set to 0.001."""
+    np.random.seed(random_seed)
+    counts = np.repeat(repetition, number_subgroups)
+
+    x = np.array([])
+    y = np.array([])
+    zeta = np.array([])
+    
+    temp = number_subgroups//3
+    a = temp
+    b = 2*temp
+
+    # Truncated normal hyperparameter
+    mu = 0 
+    e0 = 0.001
+    variance = 1 / e0      
+    lower, upper = -1, 1
+    
+    for i in range(0, a):
+        temp_x = np.linspace(0, 1, counts[i])
+        temp_zeta = truncated_normal_sample(mu, variance, lower, upper, size=1)
+
+        noise_i = np.random.normal(0, scale, counts[i])    
+        error_i = np.zeros(counts[i])
+        for t in range(counts[i]):
+            if t == 0:
+                error_i[t] = noise_i[t]
+            else:
+                error_i[t] = error_i[t-1] * temp_zeta + noise_i[t]      
+        temp_y = signal1(temp_x) + error_i 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        zeta = np.concatenate((zeta, temp_zeta), axis=0)
+
+    for i in range(a, b):
+        temp_x = np.linspace(0, 1, counts[i])
+        temp_zeta = truncated_normal_sample(mu, variance, lower, upper, size=1)
+
+        noise_i = np.random.normal(0, scale, counts[i])    
+        error_i = np.zeros(counts[i])
+        for t in range(counts[i]):
+            if t == 0:
+                error_i[t] = noise_i[t]
+            else:
+                error_i[t] = error_i[t-1] * temp_zeta + noise_i[t]      
+        temp_y = signal2(temp_x) + error_i 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        zeta = np.concatenate((zeta, temp_zeta), axis=0)
+
+    for i in range(b, number_subgroups):
+        temp_x = np.linspace(0, 1, counts[i])
+        temp_zeta = truncated_normal_sample(mu, variance, lower, upper, size=1)
+
+        noise_i = np.random.normal(0, scale, counts[i])    
+        error_i = np.zeros(counts[i])
+        for t in range(counts[i]):
+            if t == 0:
+                error_i[t] = noise_i[t]
+            else:
+                error_i[t] = error_i[t-1] * temp_zeta + noise_i[t]      
+        temp_y = signal3(temp_x) + error_i 
+        x = np.concatenate((x, temp_x), axis=0)
+        y = np.concatenate((y, temp_y), axis=0)
+        zeta = np.concatenate((zeta, temp_zeta), axis=0)
+
+    point1 = np.sum(counts[:a])
+    point2 = point1 + np.sum(counts[a:b])
+    point3 = point2 + np.sum(counts[b:number_subgroups])
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    x_space = np.linspace(0, 1, num=300, endpoint=False)
+    graph_y1 = signal1(x_space)
+    graph_y2 = signal2(x_space)
+    graph_y3 = signal3(x_space)
+    ax.plot(x_space, graph_y1, linestyle='--', lw=1, c='black', label='True Graph')
+    ax.plot(x_space, graph_y2, linestyle='--', lw=1, c='black')
+    ax.plot(x_space, graph_y3, linestyle='--', lw=1, c='black')
+
+    ax.scatter(x[:point1], y[:point1], alpha = 0.4, s=2)
+    ax.scatter(x[point1:point2], y[point1:point2], alpha = 0.4, s=2)
+    ax.scatter(x[point2:point3], y[point2:point3], alpha = 0.4, s=2)
+    plt.show()
+    print(x.shape)
+    
+    return x, y, zeta, counts
+
 def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=0.95, 
                     graph_threshold = 100, option='line_without_minor', interval=True):
+    """Estimated graph generator with the fitted variational parameters. percentage means
+       the value for the credible interval for each estimated graph. if the option is 
+       'scatter_all', all the estimated points from the basis and spline are drawn on the plot.
+       otherwise, if the option is 'line_without_minor', each estimated graph is drawn smoothly
+       by using the newly observed x values. 'interval' option indicates whether it depicts the
+       credible interval that is mentioned before."""
 
     # True Graph
     x_space = np.linspace(0, 1, num=500, endpoint=False)
@@ -197,5 +311,36 @@ def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=
     for k in range(K):
         if len(BS[k]) > 0: 
             print("     " + str(k+1) + "th Cluster Has", len(BS[k]), "Samples.")
-    
-    return None
+
+def graph_corr_check(zeta_mean, zeta_std, true_zeta):
+    """The function for checking whether posterior mean and standard deviation is
+       estimated well by AR1 Model by drawing each estimated curve with the true
+       values as well as drawing each histogram."""
+
+    fig, axs = plt.subplots(10, 10, figsize=(20, 20))
+
+    for i in range(10):
+        for j in range(10):
+            loc = zeta_mean[i*10+j]
+            scale = zeta_std[i*10+j]
+            x_space = np.linspace(loc - 4*scale, loc + 4*scale, 1000)
+            lower_limit, upper_limit = (-1 - loc) / scale, (1 - loc) / scale
+            x_transform = (x_space-loc)/scale
+            pdf = (
+                  (1/scale) * norm.pdf(x_transform) / (norm.cdf(upper_limit) 
+                   - norm.cdf(lower_limit)) * np.where((x_space >= -1) & (x_space <= 1), 1, 0)
+                  )
+            axs[i, j].plot(x_space, pdf, 'b')
+            axs[i, j].axvline(x=true_zeta[i*10+j], color='r', linestyle='--')
+
+    plt.suptitle('Estimation of True Correlation Values', fontsize=20)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.99])
+    plt.show()
+
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+    axs[0].hist(true_zeta, bins=50, alpha=0.7)
+    axs[0].set_title('True zeta')
+    axs[1].hist(zeta_mean, bins=50, alpha=0.7)
+    axs[1].set_title('Hist of Posterior mean of zeta')
+    plt.tight_layout()
+    plt.show()
