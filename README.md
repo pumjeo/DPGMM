@@ -2,7 +2,7 @@
 This repository is the source code of the **DPGMM**(Dirichlet Process Gaussian Mixture Model) for the clustering and variable selection of the functional linear regression data.
 
 # How to use?
-DPGMM offers user-friendly APIs similar to those in sklearn. Initially, we create an instance of the model class using specified parameters. Once instantiated, this model can then be employed for fitting and predicting data.
+DPGMM offers user-friendly APIs similar to those in sklearn. Initially, we create an instance of the model class using specified parameters. Once instantiated, this model can then be employed for fitting and predicting data. There are three kinds of DPGMM model: `DPGMM_basic`, `DPGMM_mixed_effect`, `DPGMM_AR1`. `DPGMM_mixed_effect` assumes the mixed effect model, adding the random effect term to the fixed effect term that catches the group effect as well as global mean at the same time. `DPGMM_AR1` supposes the autoregressive model where the data at any point in time is a function of its previous value plus some random noise.
 
 ```python
 from _DPGMM_basic import DPGMM_basic
@@ -25,7 +25,6 @@ y_pred = model.predict(X, y, counts) # Predicted value for training data
 - `max_iter`: The number of VI iterations to perform. Default is 200
 - `Weight_concentration_prior`: The Dirichlet concentration of each component. Default is 1.0
 - `beta_rho_prior`: The variance prior on the beta parameters that are not penalized. Default is 10**2
-- `beta_prior`: The prior on the coefficients distribution (Gaussian). Always set to zero vector.
 - `precision_shape_prior`: The prior of the shape parameter on the precision distribution. Default is 0.001
 - `precision_rate_prior`: The prior of the rate parameter on the precision distribution. Default is 0.001      
 - `shrink_shape_prior`: The prior of the shape parameter on the shrink distribution. Default is 0.001
@@ -33,6 +32,9 @@ y_pred = model.predict(X, y, counts) # Predicted value for training data
 - `random_state`: Controls the random seed given to the method chosen to initialize the parameters.  
 - `verbose`: Enable verbose output. Default is 0
 - `verbose_interval`: Number of iterations done before the next print. Default is 10
+- `random_covariance_prior`: The prior of the covariance for random effect. Default is 50*np.eye(). (`DPGMM_mixed_effect` only)
+- `random_degrees_prior`: The prior of the degress of freedom for random effect. Default is 1.0 (`DPGMM_mixed_effect` only)
+- `corr_precision_prior`: The prior of the precision parameter of the correlation distributions. Dsfault is 0.001 (`DPGMM_AR1` only)
 
 # Methods
 - `fit(X, y, counts)`: Fit estimator.
@@ -48,6 +50,13 @@ y_pred = model.predict(X, y, counts) # Predicted value for training data
 - `converged_`: True when convergence was reached in fit(), False otherwise.
 - `n_iter_`: Number of step used by the best fit of inference to reach the convergence.
 - `weight_concentration_`: The Dirichlet concentration of each component.
+- `wishart_degrees_`: The updated degrees of freedom parameter for each precision of random effect. (`DPGMM_mixed_effect` only)
+- `wishart_covariance_`: The updated covariance parameter for each precision of random effect. (`DPGMM_mixed_effect` only)
+- `mu_`: The updated mean parameter for each random effect component.  (`DPGMM_mixed_effect` only)
+- `Sigma_`: The updated covariance parameter for each random effect component. (`DPGMM_mixed_effect` only)
+- `W`: The design matrix for the random effect term by using the main design matrix X (`DPGMM_mixed_effect` only)
+- `varpi_`: The updated mean parameter for each correlation component. (`DPGMM_AR1` only)
+- `vartheta_`: The updated variance parameter for each correlation component. (`DPGMM_AR1` only)
 
 # Examples
 ```python
