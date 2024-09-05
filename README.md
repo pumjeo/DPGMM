@@ -61,10 +61,10 @@ y_pred = model.predict(X, y, counts) # Predicted value for training data
 # Examples for AR(1)
 ```python
 import numpy as np
-from DPGMM2._DPGMM_basic import DPGMM_basic
-from DPGMM2._DPGMM_mixed import DPGMM_mixed
-from DPGMM2._DPGMM_AR1 import DPGMM_AR1, _expectation_corr
-from DPGMM2._example_generators import (
+from ._DPGMM_basic import DPGMM_basic
+from ._DPGMM_mixed import DPGMM_mixed
+from ._DPGMM_AR1 import DPGMM_AR1, _expectation_corr
+from ._example_generators import (
     data_generator_basic, data_generator_mixed_effect, data_generator_AR1, 
     graph_generator, graph_corr_check
 )
