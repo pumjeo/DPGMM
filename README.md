@@ -103,9 +103,10 @@ print("Total number of valid Zeta is : ", np.sum((lower < true_zeta) & (true_zet
 graph_corr_check(zeta_mean, zeta_std, true_zeta) # Draw the graph
 
 # Draw the estimated graphs
-graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
-                model.precision_rate_, predicted_label, percentage=0.95, 
-                graph_threshold = 100, option='line_without_minor', interval=True)
+graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_,
+                model.precision_shape_, model.precision_rate_, predicted_label,
+                percentage=0.95, graph_threshold = 100,
+                option='line_without_minor', interval=True)
 ```
 
 ![result](https://github.com/user-attachments/assets/7bbacc47-3d13-4146-ab02-21153146835e)
