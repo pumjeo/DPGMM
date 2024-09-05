@@ -122,13 +122,13 @@ class DPGMM_AR1(DPGMM_base):
     precision_rate_ : array-like of shape (n_components,)
         The shape parameter for each precision component in the mixture.    
     
-    c_tau : float
+    c_tau_ : float
         The first parameter of the posterior distribution of shrinkage parameter (GIG)
 
-    d_tau : array-like of shape (n_components,)
+    d_tau_ : array-like of shape (n_components,)
         The second parameter of the posterior distribution of shrinkage parameter (GIG)
         
-    f_tau : array-like of shape (n_components, n_features-4)
+    f_tau_ : array-like of shape (n_components, n_features-4)
         The third parameter of the posterior distribution of shrinkage parameter (GIG)
     
     shrink_shape_ : float
