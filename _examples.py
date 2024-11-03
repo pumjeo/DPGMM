@@ -22,13 +22,16 @@ from ._example_generators import (
 x, y, counts  = data_generator_basic(poisson_parameter=10, scale=0.1, 
                                      number_subgroups=1000, random_seed=100)
 
+x_normalized = (x - x.min()) / (x.max() - x.min()) # Normalize x
+
 # Generate design matrix using basis expansion
-knot = np.linspace(0, 1, num=30, endpoint=False)
-N = x.shape[0]
-D = knot.shape[0]+4
+knot = np.linspace(0, 1, num=32, endpoint=True)[1:-1]
+N = x_normalized.shape[0]
+D = knot.shape[0] + 4
 B = np.zeros((N, D))
 for i in range(N):
-    B[i,:] = np.array([1, x[i], x[i]**2, x[i]**3] + [abs(x[i]-t)**3 for t in knot])
+    B[i, :] = np.array([1, x_normalized[i], x_normalized[i]**2, x_normalized[i]**3] + 
+                       [abs(x_normalized[i] - t)**3 for t in knot])
 
 # Fit the model
 model = DPGMM_basic(n_components=30, tol=1e-3, reg_covar = 1e-6, max_iter=10000, 
@@ -41,7 +44,7 @@ np.sqrt(model.precision_rate_/model.precision_shape_) # Posterior mean of standa
 predicted_label = model.predict(B, y, counts) # Predicted label
 
 # Draw the estimated graphs
-graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
+graph_generator(B, x, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
                 model.precision_rate_, predicted_label, percentage=0.95, 
                 graph_threshold = 100, option='line_without_minor', interval=True)
 
@@ -53,13 +56,16 @@ graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, 
 x, y, true_xai, counts = data_generator_mixed_effect(poisson_parameter=10, scale=0.1, 
                                                      number_subgroups=1000, random_seed=100)
 
+x_normalized = (x - x.min()) / (x.max() - x.min()) # Normalize x
+
 # Generate design matrix using basis expansion
-knot = np.linspace(0, 1, num=30, endpoint=False)
-N = x.shape[0]
-D = knot.shape[0]+4
+knot = np.linspace(0, 1, num=32, endpoint=True)[1:-1]
+N = x_normalized.shape[0]
+D = knot.shape[0] + 4
 B = np.zeros((N, D))
 for i in range(N):
-    B[i,:] = np.array([1, x[i], x[i]**2, x[i]**3] + [abs(x[i]-t)**3 for t in knot])
+    B[i, :] = np.array([1, x_normalized[i], x_normalized[i]**2, x_normalized[i]**3] + 
+                       [abs(x_normalized[i] - t)**3 for t in knot])
 
 # Fit the model
 model = DPGMM_mixed(n_components=30, n_features2=2, tol=1e-3, reg_covar = 1e-6, max_iter=10000, 
@@ -82,7 +88,7 @@ print("Total number of true Xai is : ", true_xai.shape[0] * true_xai.shape[1])
 print("Total number of valid Xai is : ", np.sum((lower < true_xai) & (true_xai < upper)))
 
 # Draw the estimated graphs
-graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
+graph_generator(B, x, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
                 model.precision_rate_, predicted_label, percentage=0.95, 
                 graph_threshold = 100, option='line_without_minor', interval=True)
 
@@ -94,13 +100,16 @@ graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, 
 x, y, true_zeta, counts = data_generator_AR1(repetition=50, scale=0.1, 
                                              number_subgroups=500, random_seed=100)
 
+x_normalized = (x - x.min()) / (x.max() - x.min()) # Normalize x
+
 # Generate design matrix using basis expansion
-knot = np.linspace(0, 1, num=30, endpoint=False)
-N = x.shape[0]
-D = knot.shape[0]+4
+knot = np.linspace(0, 1, num=32, endpoint=True)[1:-1]
+N = x_normalized.shape[0]
+D = knot.shape[0] + 4
 B = np.zeros((N, D))
 for i in range(N):
-    B[i,:] = np.array([1, x[i], x[i]**2, x[i]**3] + [abs(x[i]-t)**3 for t in knot])
+    B[i, :] = np.array([1, x_normalized[i], x_normalized[i]**2, x_normalized[i]**3] + 
+                       [abs(x_normalized[i] - t)**3 for t in knot])
 
 # Fit the model
 model = DPGMM_AR1(n_components=30, tol=1e-3, reg_covar = 1e-6, max_iter=10000, 
@@ -124,6 +133,6 @@ print("Total number of valid Zeta is : ", np.sum((lower < true_zeta) & (true_zet
 graph_corr_check(zeta_mean, zeta_std, true_zeta) # Draw the graph
 
 # Draw the estimated graphs
-graph_generator(B, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
+graph_generator(B, x, knot, counts, model.beta_star_mean_, model.beta_covariance_, model.precision_shape_, 
                 model.precision_rate_, predicted_label, percentage=0.95, 
                 graph_threshold = 100, option='line_without_minor', interval=True)
