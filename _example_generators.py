@@ -2,7 +2,7 @@
 
 # Author: Neulpum Jeong <pumjeo@gmail.com>
 # License: BSD 3 clause
-# Time : 2024/09/05
+# Time : 2024/10/07
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,9 +26,9 @@ def data_generator_basic(poisson_parameter=10, scale=0.1, number_subgroups=1000,
     x = np.array([])
     y = np.array([])
     
-    temp = number_subgroups//3
-    a = temp
-    b = 2*temp
+    temp_weight = number_subgroups//10
+    a = 5 * temp_weight # 50% of data are assigned to first cluster
+    b = 8 * temp_weight # 30%, 20% of data are assigned to second, third cluster each
     
     for i in range(0, a):
         temp_x = np.random.uniform(0, 1, size=counts[i]) 
@@ -72,9 +72,9 @@ def data_generator_mixed_effect(poisson_parameter=10, scale=0.1, number_subgroup
     y = np.array([])
     xai = np.empty([0,2])
     
-    temp = number_subgroups//3
-    a = temp
-    b = 2*temp
+    temp_weight = number_subgroups//10
+    a = 5 * temp_weight # 50% of data are assigned to first cluster
+    b = 8 * temp_weight # 30%, 20% of data are assigned to second, third cluster each
 
     Q1 = np.array([[20, 0], [0, 20]])
     Q2 = np.array([[10, -3], [-3, 12]])
@@ -144,9 +144,9 @@ def data_generator_AR1(repetition = 50, scale=0.1, number_subgroups=500, random_
     y = np.array([])
     zeta = np.array([])
     
-    temp = number_subgroups//3
-    a = temp
-    b = 2*temp
+    temp_weight = number_subgroups//10
+    a = 5 * temp_weight # 50% of data are assigned to first cluster
+    b = 8 * temp_weight # 30%, 20% of data are assigned to second, third cluster each
 
     # Truncated normal hyperparameter
     mu = 0 
@@ -224,7 +224,7 @@ def data_generator_AR1(repetition = 50, scale=0.1, number_subgroups=500, random_
     
     return x, y, zeta, counts
 
-def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=0.95, 
+def graph_generator(B, x, knot, counts, mean_star, C_beta, a, b, label, percentage=0.95, 
                     graph_threshold = 100, option='line_without_minor', interval=True):
     """Estimated graph generator with the fitted variational parameters. percentage means
        the value for the credible interval for each estimated graph. if the option is 
@@ -252,7 +252,7 @@ def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=
     std_dev_B = np.std(B[:, 1:], axis=0)
     standardized = (B[:, 1:] - mean_B) / std_dev_B
     B_star = np.column_stack((intercept, standardized))
-    x = B[:, 1]
+
     x_split = np.split(x, np.cumsum(counts)[:-1], axis=0)
     B_star_split = np.split(B_star, np.cumsum(counts)[:-1], axis=0)
 
@@ -266,6 +266,7 @@ def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=
         x_graph[k].extend(x_split[i])
 
     x_new = np.random.uniform(0, 1, size=10000)
+    x_new_original = x_new * (x.max() - x.min()) + x.min()
     N_new = x_new.shape[0]
     D_new = knot.shape[0]+4
     B_new = np.zeros((N_new, D_new))
@@ -287,7 +288,7 @@ def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=
         for k in range(K):
             BS_new = np.dot(B_new_star, mean_star[k])
             if len(BS[k]) < graph_threshold : continue
-            ax.scatter(x_new, BS_new, s=2, label='Estimate Graph of '+str(k+1))
+            ax.scatter(x_new_original, BS_new, s=2, label='Estimate Graph of '+str(k+1))
         
     # 95% Credible Interval
     if interval:
@@ -299,7 +300,7 @@ def graph_generator(B, knot, counts, mean_star, C_beta, a, b, label, percentage=
             lower = mu - np.sqrt(phi*(b[k]/a[k])) * quantile_t # Lower Bound
             upper = mu + np.sqrt(phi*(b[k]/a[k])) * quantile_t # Upper Bound
 
-            graph_interval_mat = np.vstack((x_new, lower, upper)).T
+            graph_interval_mat = np.vstack((x_new_original, lower, upper)).T
             sorted_graph_interval_mat = graph_interval_mat[graph_interval_mat[:,0].argsort()] # X-axis Sorting
             ax.fill_between(sorted_graph_interval_mat[:,0], sorted_graph_interval_mat[:,1], sorted_graph_interval_mat[:,2], 
                             color='blue', alpha=0.3) # Confidence Interval
