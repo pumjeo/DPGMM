@@ -24,17 +24,17 @@ y_pred = model.predict(X, y, counts) # Predicted value for training data
 - `reg_covar`: Non-negative regularization added to the diagonal of covariance. Default is 1e-6
 - `max_iter`: The number of VI iterations to perform. Default is 200
 - `Weight_concentration_prior`: The Dirichlet concentration of each component. Default is 1.0
-- `beta_rho_prior`: The variance prior on the beta parameters that are not penalized. Default is 10**2
-- `precision_shape_prior`: The prior of the shape parameter on the precision distribution. Default is 0.001
-- `precision_rate_prior`: The prior of the rate parameter on the precision distribution. Default is 0.001      
+- `beta_rho_prior`: The variance prior on the beta parameters that are not penalized. Default is 10**10
+- `precision_shape_prior`: The prior of the shape parameter on the precision distribution. Default is 10**-10
+- `precision_rate_prior`: The prior of the rate parameter on the precision distribution. Default is 10**-10      
 - `shrink_shape_prior`: The prior of the shape parameter on the shrink distribution. Default is 0.001
 - `shrink_rate_prior`: The prior of the rate parameter on the shrink distribution. Default is 0.001
 - `random_state`: Controls the random seed given to the method chosen to initialize the parameters.  
 - `verbose`: Enable verbose output. Default is 0
 - `verbose_interval`: Number of iterations done before the next print. Default is 10
-- `random_covariance_prior`: The prior of the covariance for random effect. Default is 50*np.eye(). (`DPGMM_mixed_effect` only)
-- `random_degrees_prior`: The prior of the degress of freedom for random effect. Default is 1.0 (`DPGMM_mixed_effect` only)
-- `corr_precision_prior`: The prior of the precision parameter of the correlation distributions. Dsfault is 0.001 (`DPGMM_AR1` only)
+- `random_covariance_prior`: The prior of the covariance for random effect. Default is (10**10)*np.eye(). (`DPGMM_mixed_effect` only)
+- `random_degrees_prior`: The prior of the degress of freedom for random effect. Default is 'n_features2' (`DPGMM_mixed_effect` only)
+- `corr_precision_prior`: The prior of the precision parameter of the correlation distributions. Dsfault is 10**-10 (`DPGMM_AR1` only)
 
 # Methods
 - `fit(X, y, counts)`: Fit estimator.
